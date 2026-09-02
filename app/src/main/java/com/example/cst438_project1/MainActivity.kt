@@ -11,11 +11,26 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.lifecycleScope
 import com.example.cst438_project1.ui.theme.Cst438project1Theme
+import com.example.cst438_project1.data.remote.AlcoholApi
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        //api test
+        lifecycleScope.launch {
+            try {
+                val alcohol = AlcoholApi.getAlcohol("vodka")
+
+                android.util.Log.d("AlcoholTest", "Result: $alcohol")
+            } catch (error: Exception) {
+                android.util.Log.e("AlcoholTest", "Request failed", error)
+            }
+        }
+
         enableEdgeToEdge()
         setContent {
             Cst438project1Theme {
