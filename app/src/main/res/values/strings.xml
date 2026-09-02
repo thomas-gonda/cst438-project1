@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">cst438-project1</string>
+    <string name="title_activity_landing_page">LandingPage</string>
 </resources>

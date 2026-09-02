@@ -24,6 +24,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".LandingPage"
+            android:exported="false"
+            android:label="@string/title_activity_landing_page"
+            android:theme="@style/Theme.Cst438project1"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>
