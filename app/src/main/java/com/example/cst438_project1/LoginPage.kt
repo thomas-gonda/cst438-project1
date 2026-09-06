@@ -1,4 +1,4 @@
-package com.example.cst438_project1.ui.theme
+package com.example.cst438_project1
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
