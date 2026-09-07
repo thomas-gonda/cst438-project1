@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.cst438_project1.ui.theme.ui.theme.Cst438project1Theme
@@ -50,7 +53,26 @@ fun LoginScreen(modifier: Modifier = Modifier) {
         Text(text = "Log In")
 
         Spacer(modifier = Modifier.height(16.dp))
+        //Username text box
+        OutlinedTextField(
+            value = username,
+            onValueChange = {username = it},
+            label = {Text("Username")}
+        )
+        //Password text box
+        OutlinedTextField(
+            value = password,
+            onValueChange = {password = it},
+            label = {Text("password")},
+            visualTransformation = PasswordVisualTransformation() //hides entered password
+        )
+        Spacer(modifier = Modifier.height(16.dp))
 
+        Button(onClick = {
+            // TODO: Add logic here to check the username and password
+        }) {
+            Text("Submit")
+        }
     }
 }
 
