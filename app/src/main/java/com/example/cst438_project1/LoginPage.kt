@@ -14,6 +14,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -72,6 +73,12 @@ fun LoginScreen(modifier: Modifier = Modifier) {
             // TODO: Add logic here to check the username and password
         }) {
             Text("Submit")
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        TextButton(onClick = {
+            //TODO: Add logic to open Sign Up Page
+        }) {
+            Text("Don't have an Account? Sign Up Here")
         }
     }
 }
