@@ -1,5 +1,9 @@
 package com.example.cst438_project1
-
+import android.util.Log
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
+import com.example.cst438_project1.data.local.AlcoholEntity
+import com.example.cst438_project1.data.local.AppDatabase
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,7 +20,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -44,6 +47,10 @@ fun AlcoholSearchScreen() {
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val database = remember {
+        AppDatabase.getInstance(context)
+    }
 
     Scaffold { innerPadding ->
         Column(
@@ -60,7 +67,35 @@ fun AlcoholSearchScreen() {
                         isLoading = true
                         errorMessage = null
                         try {
-                            alcohol = AlcoholApi.getAlcohol("vodka", resultCount = 5)
+                            val apiProducts =
+                                AlcoholApi.getAlcohol("vodka", resultCount = 5)
+
+                            alcohol = apiProducts
+
+                            apiProducts.forEach { product ->
+                                val productId = product.barcode
+
+                                if (productId != null) {
+                                    database.alcoholDao().save(
+                                        AlcoholEntity(
+                                            id = productId,
+                                            product_name =
+                                                product.name ?: "Unknown product",
+                                            brand = product.brand,
+                                            countries = product.countries,
+                                            abv = product.abv,
+                                            image_url = product.imageUrl
+                                        )
+                                    )
+                                }
+                            }
+
+                            val savedProducts = database.alcoholDao().getAll()
+
+                            Log.d(
+                                "DATABASE_TEST",
+                                "Saved products: ${savedProducts.size}"
+                            )
                             if (alcohol.isEmpty()) errorMessage = "No matching products found."
                         } catch (error: Exception) {
                             errorMessage = "Could not load product: ${error.message}"
