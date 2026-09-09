@@ -84,7 +84,7 @@ fun AlcoholSearchScreen() {
                                             brand = product.brand,
                                             countries = product.countries,
                                             abv = product.abv,
-                                            image_url = null
+                                            image_url = product.imageUrl
                                         )
                                     )
                                 }
