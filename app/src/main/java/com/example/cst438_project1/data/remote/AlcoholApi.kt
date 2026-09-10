@@ -26,6 +26,7 @@ object AlcoholApi {
             val products = getFromOpenFoodFacts(name, resultCount)
             if (products.isNotEmpty()) {
                 Log.i(TAG, "Open Food Facts returned ${products.size} result(s) for '$name'.")
+                Log.i(TAG, "${products}")
                 return@withContext products
             }
             Log.i(TAG, "Open Food Facts returned no matches for '$name'; trying LCBO.")
@@ -35,6 +36,7 @@ object AlcoholApi {
 
         val products = getFromLcbo(name, resultCount)
         Log.i(TAG, "LCBO returned ${products.size} result(s) for '$name'.")
+        Log.i(TAG, "${products}")
         products
     }
 

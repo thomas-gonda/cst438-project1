@@ -12,4 +12,7 @@ interface UserDao {
 
     @Query("SELECT * FROM User WHERE username = :username LIMIT 1")
     suspend fun findByUsername(username: String): UserEntity?
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(users: List<UserEntity>)
 }
