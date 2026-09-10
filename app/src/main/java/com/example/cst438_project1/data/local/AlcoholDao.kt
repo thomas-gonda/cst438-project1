@@ -15,4 +15,7 @@ interface AlcoholDao {
 
     @Query("SELECT * FROM Alcohol ORDER BY product_name")
     suspend fun getAll(): List<AlcoholEntity>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(products: List<AlcoholEntity>)
 }
