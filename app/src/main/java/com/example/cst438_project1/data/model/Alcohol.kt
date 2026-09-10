@@ -25,7 +25,9 @@ data class Alcohol(
     val imageUrl: String?,
 
     @SerializedName("nutriments")
-    val nutriments: Nutriments?
+    val nutriments: Nutriments?,
+
+
 ) {
     val abv: Double?
         get() = nutriments?.alcoholByVolume

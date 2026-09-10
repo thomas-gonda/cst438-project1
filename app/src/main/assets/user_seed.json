@@ -1,0 +1,20 @@
+[
+  {
+    "first_name": "Alex",
+    "last_name": "Rivera",
+    "password": "DemoPass123!",
+    "username": "alex.rivera"
+  },
+  {
+    "first_name": "Jordan",
+    "last_name": "Lee",
+    "password": "DemoPass456!",
+    "username": "jordan.lee"
+  },
+  {
+    "first_name": "Taylor",
+    "last_name": "Morgan",
+    "password": "DemoPass789!",
+    "username": "taylor.morgan"
+  }
+]
