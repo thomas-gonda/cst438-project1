@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
@@ -29,6 +30,12 @@
             android:name=".LandingPage"
             android:exported="false"
             android:label="@string/title_activity_landing_page"
+            android:theme="@style/Theme.Cst438project1"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".LoginPage"
+            android:exported="false"
+            android:label="@string/title_activity_login_page"
             android:theme="@style/Theme.Cst438project1"
             android:windowSoftInputMode="adjustResize" />
     </application>
