@@ -1,4 +1,8 @@
+import org.gradle.api.plugins.quality.Pmd
+
 plugins {
+    id("dev.detekt") version("2.0.0-alpha.6")
+    id("pmd")
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
@@ -6,7 +10,6 @@ plugins {
 
 android {
     namespace = "com.example.cst438_project1"
-
     compileSdk {
         version = release(37)
     }
@@ -37,6 +40,51 @@ android {
 
     buildFeatures {
         compose = true
+    }
+}
+
+pmd {
+    toolVersion = "7.16.0"
+    ruleSets = emptyList()
+    ruleSetFiles = files("$rootDir/config/pmd/ruleset.xml")
+    isConsoleOutput = true
+}
+
+tasks.withType<Pmd>().configureEach {
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+    }
+}
+
+detekt {
+    toolVersion = "2.0.0-alpha.6"
+    buildUponDefaultConfig = true
+    config.setFrom(file("$rootDir/config/detekt/detekt.yml"))
+    source.setFrom(
+        "src/main/java",
+        "src/main/kotlin",
+        "src/test/java",
+        "src/test/kotlin"
+    )
+}
+
+tasks.named<dev.detekt.gradle.Detekt>("detekt") {
+    reports {
+        html.required.set(true)
+        html.outputLocation.set(
+            layout.buildDirectory.file("reports/detekt/detekt.html")
+        )
+
+        checkstyle.required.set(true)
+        checkstyle.outputLocation.set(
+            layout.buildDirectory.file("reports/detekt/detekt.xml")
+        )
+
+        sarif.required.set(true)
+        sarif.outputLocation.set(
+            layout.buildDirectory.file("reports/detekt/detekt.sarif")
+        )
     }
 }
 

@@ -11,32 +11,61 @@ import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URLEncoder
 import java.net.URL
+import java.io.IOException
 
 object AlcoholApi {
     private const val TAG = "AlcoholApi"
     private const val OPEN_FOOD_FACTS_URL = "https://world.openfoodfacts.org/cgi/search.pl"
     private const val LCBO_GRAPHQL_URL = "https://api.lcbo.dev/graphql"
 
+    const val GOOD_RESPONSE_CODE_BEGINNING_RANGE = 200
+    const val GOOD_RESPONSE_CODE_ENDING_RANGE = 299
+
+    private class ApiResponseException(message: String) : IOException(message)
+
     /** Searches Open Food Facts first, then LCBO if it fails or finds no match. */
-    suspend fun getAlcohol(name: String, resultCount: Int = 1): List<Alcohol> = withContext(Dispatchers.IO) {
+    suspend fun getAlcohol(
+        name: String,
+        resultCount: Int = 1
+    ): List<Alcohol> = withContext(Dispatchers.IO) {
         if (name.isBlank()) return@withContext emptyList()
-        require(resultCount > 0) { "resultCount must be greater than 0." }
+
+        require(resultCount > 0) {
+            "resultCount must be greater than 0."
+        }
 
         try {
             val products = getFromOpenFoodFacts(name, resultCount)
+
             if (products.isNotEmpty()) {
-                Log.i(TAG, "Open Food Facts returned ${products.size} result(s) for '$name'.")
-                Log.i(TAG, "${products}")
+                Log.i(
+                    TAG,
+                    "Open Food Facts returned ${products.size} result(s) for '$name'."
+                )
+                Log.i(TAG, "$products")
                 return@withContext products
             }
-            Log.i(TAG, "Open Food Facts returned no matches for '$name'; trying LCBO.")
-        } catch (error: Exception) {
-            Log.w(TAG, "Open Food Facts failed for '$name'; trying LCBO instead.", error)
+
+            Log.i(
+                TAG,
+                "Open Food Facts returned no matches for '$name'; trying LCBO."
+            )
+        } catch (error: IOException) {
+            Log.w(
+                TAG,
+                "Open Food Facts request failed for '$name'; trying LCBO instead.",
+                error
+            )
         }
 
         val products = getFromLcbo(name, resultCount)
-        Log.i(TAG, "LCBO returned ${products.size} result(s) for '$name'.")
-        Log.i(TAG, "${products}")
+
+        Log.i(
+            TAG,
+            "LCBO returned ${products.size} result(s) for '$name'."
+        )
+        Log.i(TAG, "$products")
+
         products
     }
 
@@ -55,8 +84,12 @@ object AlcoholApi {
         }
 
         try {
-            check(connection.responseCode in 200..299) {
-                "Open Food Facts returned HTTP ${connection.responseCode}"
+            if (connection.responseCode !in
+                GOOD_RESPONSE_CODE_BEGINNING_RANGE..GOOD_RESPONSE_CODE_ENDING_RANGE
+            ) {
+                throw ApiResponseException(
+                    "Open Food Facts returned HTTP ${connection.responseCode}"
+                )
             }
             val response = Gson().fromJson(
                 connection.inputStream.bufferedReader().use { it.readText() },
@@ -97,13 +130,19 @@ object AlcoholApi {
 
         try {
             connection.outputStream.use { it.write(requestBody.toByteArray(Charsets.UTF_8)) }
-            check(connection.responseCode in 200..299) {
-                "LCBO returned HTTP ${connection.responseCode}"
+            if (connection.responseCode !in
+                GOOD_RESPONSE_CODE_BEGINNING_RANGE..GOOD_RESPONSE_CODE_ENDING_RANGE
+            ) {
+                throw ApiResponseException(
+                    "LCBO returned HTTP ${connection.responseCode}"
+                )
             }
             val root = JsonParser.parseString(
                 connection.inputStream.bufferedReader().use { it.readText() }
             ).asJsonObject
-            check(!root.has("errors")) { "LCBO returned a GraphQL error" }
+            if (root.has("errors")) {
+                throw ApiResponseException("LCBO returned a GraphQL error")
+            }
 
             val edges = root.getAsJsonObject("data")
                 ?.getAsJsonObject("products")

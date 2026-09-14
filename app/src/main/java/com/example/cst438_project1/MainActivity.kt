@@ -1,5 +1,6 @@
 package com.example.cst438_project1
 
+import android.database.sqlite.SQLiteException
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -37,6 +38,10 @@ import com.example.cst438_project1.ui.theme.Cst438project1Theme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.IOException
+
+private const val API_SEARCH_TAG = "API_SEARCH"
+private const val AUTOCOMPLETE_RESULT_LIMIT = 5
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -65,24 +70,12 @@ fun AlcoholSearchScreen() {
         AppDatabase.getInstance(context)
     }
 
-    // Search the local Room database whenever the text changes.
     LaunchedEffect(searchText, selectedAlcohol) {
-        if (selectedAlcohol != null || searchText.isBlank()) {
-            suggestions = emptyList()
-        } else {
-            suggestions = withContext(Dispatchers.IO) {
-                database.alcoholDao()
-                    .getAll()
-                    .filter { product ->
-                        product.product_name.contains(
-                            searchText.trim(),
-                            ignoreCase = true
-                        )
-                    }
-                    .sortedBy { it.product_name.lowercase() }
-                    .take(5)
-            }
-        }
+        suggestions = findSuggestions(
+            searchText = searchText,
+            selectedAlcohol = selectedAlcohol,
+            database = database
+        )
     }
 
     Scaffold { innerPadding ->
@@ -97,23 +90,18 @@ fun AlcoholSearchScreen() {
                 style = MaterialTheme.typography.headlineMedium
             )
 
-            OutlinedTextField(
-                value = searchText,
-                onValueChange = { newText ->
+            SearchField(
+                searchText = searchText,
+                onSearchTextChange = { newText ->
                     searchText = newText
                     selectedAlcohol = null
                     apiResults = emptyList()
                     errorMessage = null
-                },
-                label = { Text("Search alcohols") },
-                placeholder = { Text("Type a product name") },
-                singleLine = true,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp)
+                }
             )
 
-            Button(
+            SearchApiButton(
+                isLoading = isLoading,
                 onClick = {
                     val query = searchText.trim()
 
@@ -126,49 +114,41 @@ fun AlcoholSearchScreen() {
                             selectedAlcohol = null
 
                             try {
-                                apiResults = AlcoholApi.getAlcohol(
-                                    query,
-                                    resultCount = 5
+                                apiResults = searchAndSaveAlcohol(
+                                    query = query,
+                                    database = database
                                 )
-
-                                apiResults.forEach { product ->
-                                    product.barcode?.let { productId ->
-                                        database.alcoholDao().save(
-                                            AlcoholEntity(
-                                                id = productId,
-                                                product_name = product.name
-                                                    ?: "Unknown product",
-                                                brand = product.brand,
-                                                countries = product.countries,
-                                                abv = product.abv,
-                                                image_url = product.imageUrl
-                                            )
-                                        )
-                                    }
-                                }
-
                                 Log.d(
-                                    "API_SEARCH",
+                                    API_SEARCH_TAG,
                                     "Found ${apiResults.size} products for $query"
                                 )
 
                                 if (apiResults.isEmpty()) {
                                     errorMessage = "No matching alcohols found."
                                 }
-                            } catch (error: Exception) {
+                            } catch (error: IOException) {
+                                Log.e(
+                                    API_SEARCH_TAG,
+                                    "Network request failed",
+                                    error
+                                )
                                 errorMessage =
-                                    "Could not load products: ${error.message}"
+                                    "Network error. Check your internet connection."
+                            } catch (error: SQLiteException) {
+                                Log.e(
+                                    API_SEARCH_TAG,
+                                    "Database save failed",
+                                    error
+                                )
+                                errorMessage =
+                                    "Could not save the products locally."
                             } finally {
                                 isLoading = false
                             }
                         }
                     }
-                },
-                enabled = !isLoading,
-                modifier = Modifier.padding(top = 12.dp)
-            ) {
-                Text("Search API")
-            }
+                }
+            )
 
             if (isLoading) {
                 CircularProgressIndicator(
@@ -176,77 +156,24 @@ fun AlcoholSearchScreen() {
                 )
             }
 
-            // Autocomplete suggestions from Room, limited to five entries.
-            if (suggestions.isNotEmpty()) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp)
-                ) {
-                    suggestions.forEach { product ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    selectedAlcohol = product
-                                    searchText = product.product_name
-                                    suggestions = emptyList()
-                                    apiResults = emptyList()
-                                    errorMessage = null
-                                }
-                                .padding(vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = product.product_name,
-                                modifier = Modifier.padding(12.dp),
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-                    }
+            SuggestionsList(
+                suggestions = suggestions,
+                onSuggestionSelected = { product ->
+                    selectedAlcohol = product
+                    searchText = product.product_name
+                    suggestions = emptyList()
+                    apiResults = emptyList()
+                    errorMessage = null
                 }
-            }
+            )
 
-            // A selected autocomplete item takes priority and displays alone.
-            if (selectedAlcohol != null) {
-                val product = selectedAlcohol!!
-                LazyColumn(Modifier.padding(top = 24.dp)) {
-                    item {
-                        Column(Modifier.padding(bottom = 16.dp)) {
-                            Text(
-                                text = product.product_name,
-                                style = MaterialTheme.typography.titleLarge
-                            )
-                            product.brand?.let { Text("Brand: $it") }
-                            product.countries?.let { Text("Country: $it") }
-                            product.abv?.let { Text("ABV: $it%") }
-                            product.image_url?.let { Text("Image: $it") }
-                        }
-                    }
-                }
-            } else if (apiResults.isNotEmpty()) {
-                // Display results returned by the external API.
-                LazyColumn(Modifier.padding(top = 24.dp)) {
-                    items(apiResults) { product ->
-                        Column(Modifier.padding(bottom = 16.dp)) {
-                            Text(
-                                text = product.name ?: "Unknown product",
-                                style = MaterialTheme.typography.titleLarge
-                            )
-                            product.brand?.let { Text("Brand: $it") }
-                            product.category?.let { Text("Category: $it") }
-                            product.countries?.let { Text("Country: $it") }
-                            product.size?.let { Text("Size: $it") }
-                            product.abv?.let { Text("ABV: $it%") }
-                            product.barcode?.let { Text("Barcode/SKU: $it") }
-                        }
-                    }
-                }
-            } else if (searchText.isNotBlank() && suggestions.isEmpty() && !isLoading) {
-                Text(
-                    text = "No matching alcohols found.",
-                    modifier = Modifier.padding(top = 24.dp)
-                )
-            }
+            SearchResults(
+                selectedAlcohol = selectedAlcohol,
+                apiResults = apiResults,
+                searchText = searchText,
+                suggestions = suggestions,
+                isLoading = isLoading
+            )
 
             errorMessage?.let { message ->
                 Text(
@@ -254,6 +181,172 @@ fun AlcoholSearchScreen() {
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(top = 16.dp)
                 )
+            }
+        }
+    }
+}
+
+private suspend fun findSuggestions(
+    searchText: String,
+    selectedAlcohol: AlcoholEntity?,
+    database: AppDatabase
+): List<AlcoholEntity> {
+    if (selectedAlcohol != null || searchText.isBlank()) {
+        return emptyList()
+    }
+
+    return withContext(Dispatchers.IO) {
+        database.alcoholDao()
+            .getAll()
+            .filter { product ->
+                product.product_name.contains(
+                    searchText.trim(),
+                    ignoreCase = true
+                )
+            }
+            .sortedBy { it.product_name.lowercase() }
+            .take(AUTOCOMPLETE_RESULT_LIMIT)
+    }
+}
+
+private suspend fun searchAndSaveAlcohol(
+    query: String,
+    database: AppDatabase
+): List<Alcohol> {
+    val products = AlcoholApi.getAlcohol(
+        query,
+        resultCount = AUTOCOMPLETE_RESULT_LIMIT
+    )
+
+    products.forEach { product ->
+        product.barcode?.let { productId ->
+            database.alcoholDao().save(
+                AlcoholEntity(
+                    id = productId,
+                    product_name = product.name ?: "Unknown product",
+                    brand = product.brand,
+                    countries = product.countries,
+                    abv = product.abv,
+                    image_url = product.imageUrl
+                )
+            )
+        }
+    }
+
+    return products
+}
+
+@Composable
+private fun SearchField(
+    searchText: String,
+    onSearchTextChange: (String) -> Unit
+) {
+    OutlinedTextField(
+        value = searchText,
+        onValueChange = onSearchTextChange,
+        label = { Text("Search alcohols") },
+        placeholder = { Text("Type a product name") },
+        singleLine = true,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 16.dp)
+    )
+}
+
+@Composable
+private fun SearchApiButton(
+    isLoading: Boolean,
+    onClick: () -> Unit
+) {
+    Button(
+        onClick = onClick,
+        enabled = !isLoading,
+        modifier = Modifier.padding(top = 12.dp)
+    ) {
+        Text("Search API")
+    }
+}
+
+@Composable
+private fun SuggestionsList(
+    suggestions: List<AlcoholEntity>,
+    onSuggestionSelected: (AlcoholEntity) -> Unit
+) {
+    if (suggestions.isNotEmpty()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 4.dp)
+        ) {
+            suggestions.forEach { product ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onSuggestionSelected(product) }
+                        .padding(vertical = 2.dp)
+                ) {
+                    Text(
+                        text = product.product_name,
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchResults(
+    selectedAlcohol: AlcoholEntity?,
+    apiResults: List<Alcohol>,
+    searchText: String,
+    suggestions: List<AlcoholEntity>,
+    isLoading: Boolean
+) {
+    when {
+        selectedAlcohol != null -> SelectedAlcoholResult(selectedAlcohol)
+        apiResults.isNotEmpty() -> ApiResultsList(apiResults)
+        searchText.isNotBlank() && suggestions.isEmpty() && !isLoading -> Text(
+            text = "No matching alcohols found.",
+            modifier = Modifier.padding(top = 24.dp)
+        )
+    }
+}
+
+@Composable
+private fun SelectedAlcoholResult(product: AlcoholEntity) {
+    LazyColumn(Modifier.padding(top = 24.dp)) {
+        item {
+            Column(Modifier.padding(bottom = 16.dp)) {
+                Text(
+                    text = product.product_name,
+                    style = MaterialTheme.typography.titleLarge
+                )
+                product.brand?.let { Text("Brand: $it") }
+                product.countries?.let { Text("Country: $it") }
+                product.abv?.let { Text("ABV: $it%") }
+                product.image_url?.let { Text("Image: $it") }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ApiResultsList(apiResults: List<Alcohol>) {
+    LazyColumn(Modifier.padding(top = 24.dp)) {
+        items(apiResults) { product ->
+            Column(Modifier.padding(bottom = 16.dp)) {
+                Text(
+                    text = product.name ?: "Unknown product",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                product.brand?.let { Text("Brand: $it") }
+                product.category?.let { Text("Category: $it") }
+                product.countries?.let { Text("Country: $it") }
+                product.size?.let { Text("Size: $it") }
+                product.abv?.let { Text("ABV: $it%") }
+                product.barcode?.let { Text("Barcode/SKU: $it") }
             }
         }
     }
