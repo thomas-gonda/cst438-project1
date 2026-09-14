@@ -1,8 +1,7 @@
 package com.example.cst438_project1
 
 import org.junit.Test
-
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
 
 /**
  * Example local unit test, which will execute on the development machine (host).
