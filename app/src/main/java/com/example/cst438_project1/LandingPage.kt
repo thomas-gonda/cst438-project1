@@ -20,11 +20,20 @@ class LandingPage : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // retrieve the strings from the Intent (default to empty string if not found)
+        val firstName = intent.getStringExtra("FIRST_NAME") ?: "User"
+        val lastName = intent.getStringExtra("LAST_NAME") ?: ""
+
+        // combine them into a full name
+        val fullName = "$firstName $lastName".trim()
+
         setContent {
             Cst438project1Theme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                    // 3. Pass the full name to your composable
                     Greeting2(
-                        name = "User",
+                        name = fullName,
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
@@ -36,7 +45,6 @@ class LandingPage : ComponentActivity() {
 @Composable
 fun Greeting2(name: String, modifier: Modifier = Modifier) {
     Column(
-        //changes the layout on screen
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
@@ -55,7 +63,6 @@ fun Greeting2(name: String, modifier: Modifier = Modifier) {
 @Composable
 fun GreetingPreview2() {
     Cst438project1Theme {
-        //eventually will be the username from the DB
-        Greeting2("User")
+        Greeting2("Test User")
     }
 }

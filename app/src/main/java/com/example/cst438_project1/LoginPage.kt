@@ -33,7 +33,12 @@ import org.json.JSONArray
 import java.io.IOException
 
 //data class for user
-data class User(val username: String, val password: String)
+data class User(
+    val username: String,
+    val password: String,
+    val firstName: String,
+    val lastName: String
+)
 
 class LoginPage : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,7 +73,9 @@ fun loadUsersFromAssets(context: Context): List<User> {
         userList.add(
             User(
                 username = jsonObject.getString("username"),
-                password = jsonObject.getString("password")
+                password = jsonObject.getString("password"),
+                firstName = jsonObject.getString("first_name"), // Added from JSON schema
+                lastName = jsonObject.getString("last_name")    // Added from JSON schema
             )
         )
     }
@@ -105,16 +112,23 @@ fun LoginScreen(modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(16.dp))
 
         Button(onClick = {
-            // 3. Logic to check username and password
-            val users = loadUsersFromAssets(context) // Load our users from the JSON
+            val users = loadUsersFromAssets(context)
 
-            // Check if the entered credentials match any user in our list
-            val isValidUser = users.any { it.username == username && it.password == password }
+            // Checks to see if it is valid
+            val validUser = users.find { it.username == username && it.password == password }
 
-            // Show the appropriate Toast message
-            if (isValidUser) {
+            if (validUser != null) {
                 Toast.makeText(context, "Login Successful!", Toast.LENGTH_SHORT).show()
-                // Future step: Navigate to the next page here!
+
+                // create an Intent to open the LandingPage
+                val intent = android.content.Intent(context, LandingPage::class.java).apply {
+                    // attach the user's data to the Intent
+                    putExtra("FIRST_NAME", validUser.firstName)
+                    putExtra("LAST_NAME", validUser.lastName)
+                }
+                // Launch the next screen
+                context.startActivity(intent)
+
             } else {
                 Toast.makeText(context, "Invalid username or password.", Toast.LENGTH_SHORT).show()
             }
