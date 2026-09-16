@@ -14,29 +14,33 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Cst438project1">
+
+        <!-- MainActivity is no longer the starting screen -->
         <activity
             android:name=".MainActivity"
-            android:exported="true"
+            android:exported="false"
             android:theme="@style/Theme.Cst438project1"
-            android:windowSoftInputMode="adjustResize">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
+            android:windowSoftInputMode="adjustResize" />
 
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
         <activity
             android:name=".LandingPage"
             android:exported="false"
             android:label="@string/title_activity_landing_page"
             android:theme="@style/Theme.Cst438project1"
             android:windowSoftInputMode="adjustResize" />
+
+        <!-- LoginPage is now the starting screen -->
         <activity
             android:name=".LoginPage"
-            android:exported="false"
+            android:exported="true"
             android:label="@string/title_activity_login_page"
             android:theme="@style/Theme.Cst438project1"
-            android:windowSoftInputMode="adjustResize" />
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>
