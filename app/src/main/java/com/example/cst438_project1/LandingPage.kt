@@ -31,42 +31,38 @@ class LandingPage : ComponentActivity() {
         enableEdgeToEdge()
 
         val userId = intent.getIntExtra("USER_ID", -1)
-        val firstName =
-            intent.getStringExtra("FIRST_NAME") ?: "User"
-        val lastName =
-            intent.getStringExtra("LAST_NAME") ?: ""
+        val firstName = intent.getStringExtra("FIRST_NAME") ?: "User"
+        val lastName = intent.getStringExtra("LAST_NAME") ?: ""
         val fullName = "$firstName $lastName".trim()
 
         setContent {
             Cst438project1Theme {
-                var showTimeline by rememberSaveable {
-                    mutableStateOf(false)
-                }
+                var showTimeline by rememberSaveable { mutableStateOf(false) }
 
                 if (showTimeline && userId > 0) {
                     TimelinePage(
                         userId = userId,
-                        onBack = {
-                            showTimeline = false
-                        }
+                        onBack = { showTimeline = false }
                     )
                 } else {
-                    Scaffold(
-                        modifier = Modifier.fillMaxSize()
-                    ) { innerPadding ->
+                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                         LandingContent(
                             name = fullName,
                             timelineEnabled = userId > 0,
-                            onOpenTimeline = {
-                                showTimeline = true
+                            onOpenTimeline = { showTimeline = true },
+                            onOpenAlcoholSearch = {
+                                val searchIntent = Intent(
+                                    this,
+                                    MainActivity::class.java
+                                ).apply {
+                                    putExtra("USER_ID", userId)
+                                    putExtra("FIRST_NAME", firstName)
+                                    putExtra("LAST_NAME", lastName)
+                                }
+                                startActivity(searchIntent)
                             },
                             onLogout = {
-                                startActivity(
-                                    Intent(
-                                        this,
-                                        LoginPage::class.java
-                                    )
-                                )
+                                startActivity(Intent(this, LoginPage::class.java))
                                 finish()
                             },
                             modifier = Modifier.padding(innerPadding)
@@ -83,6 +79,7 @@ fun LandingContent(
     name: String,
     timelineEnabled: Boolean,
     onOpenTimeline: () -> Unit,
+    onOpenAlcoholSearch: () -> Unit,
     onLogout: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -92,12 +89,15 @@ fun LandingContent(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(text = "Welcome $name!")
-
         Spacer(modifier = Modifier.height(8.dp))
-
         Text(text = "It's Tipsy Time!")
-
         Spacer(modifier = Modifier.height(32.dp))
+
+        Button(onClick = onOpenAlcoholSearch) {
+            Text("Search Alcohols")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
 
         Button(
             onClick = onOpenTimeline,
@@ -122,6 +122,7 @@ fun LandingContentPreview() {
             name = "Test User",
             timelineEnabled = true,
             onOpenTimeline = {},
+            onOpenAlcoholSearch = {},
             onLogout = {}
         )
     }

@@ -4,6 +4,7 @@ import android.database.sqlite.SQLiteException
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
@@ -43,155 +44,198 @@ import java.io.IOException
 private const val API_SEARCH_TAG = "API_SEARCH"
 private const val AUTOCOMPLETE_RESULT_LIMIT = 5
 
+private data class SearchOutcome(
+    val products: List<Alcohol> = emptyList(),
+    val errorMessage: String? = null
+)
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val userId = intent.getIntExtra("USER_ID", -1)
+        val firstName = intent.getStringExtra("FIRST_NAME") ?: "User"
+        val lastName = intent.getStringExtra("LAST_NAME") ?: ""
+
         setContent {
             Cst438project1Theme {
-                AlcoholSearchScreen()
+                MainContent(userId, firstName, lastName)
             }
         }
     }
 }
 
 @Composable
-fun AlcoholSearchScreen() {
+private fun MainContent(userId: Int, firstName: String, lastName: String) {
+    var alcoholDetails by remember { mutableStateOf<AlcoholDetails?>(null) }
+
+    BackHandler(enabled = alcoholDetails != null) {
+        alcoholDetails = null
+    }
+
+    val selectedAlcohol = alcoholDetails
+    if (selectedAlcohol == null) {
+        AlcoholSearchScreen(
+            userId = userId,
+            firstName = firstName,
+            lastName = lastName,
+            onAlcoholClick = { alcoholDetails = it }
+        )
+    } else {
+        AlcoholDetailsScreen(
+            userId = userId,
+            firstName = firstName,
+            lastName = lastName,
+            alcohol = selectedAlcohol,
+            onBack = { alcoholDetails = null }
+        )
+    }
+}
+
+@Composable
+fun AlcoholSearchScreen(
+    userId: Int,
+    firstName: String,
+    lastName: String,
+    onAlcoholClick: (AlcoholDetails) -> Unit
+) {
     var searchText by remember { mutableStateOf("") }
     var suggestions by remember { mutableStateOf<List<AlcoholEntity>>(emptyList()) }
-    var selectedAlcohol by remember { mutableStateOf<AlcoholEntity?>(null) }
     var apiResults by remember { mutableStateOf<List<Alcohol>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
-
     val context = LocalContext.current
-    val database = remember {
-        AppDatabase.getInstance(context)
-    }
+    val database = remember { AppDatabase.getInstance(context) }
 
-    LaunchedEffect(searchText, selectedAlcohol) {
-        suggestions = findSuggestions(
-            searchText = searchText,
-            selectedAlcohol = selectedAlcohol,
-            database = database
-        )
+    LaunchedEffect(searchText) {
+        suggestions = findSuggestions(searchText, database)
     }
 
     Scaffold { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Alcohol search",
-                style = MaterialTheme.typography.headlineMedium
-            )
-
-            SearchField(
-                searchText = searchText,
-                onSearchTextChange = { newText ->
-                    searchText = newText
-                    selectedAlcohol = null
-                    apiResults = emptyList()
-                    errorMessage = null
+        SearchScreenContent(
+            modifier = Modifier.padding(innerPadding),
+            userId = userId,
+            fullName = "$firstName $lastName".trim(),
+            searchText = searchText,
+            suggestions = suggestions,
+            apiResults = apiResults,
+            isLoading = isLoading,
+            errorMessage = errorMessage,
+            onSearchTextChange = {
+                searchText = it
+                apiResults = emptyList()
+                errorMessage = null
+            },
+            onSearch = {
+                coroutineScope.launch {
+                    isLoading = true
+                    val outcome = performSearch(searchText, database)
+                    apiResults = outcome.products
+                    errorMessage = outcome.errorMessage
+                    isLoading = false
                 }
-            )
+            },
+            onAlcoholClick = onAlcoholClick
+        )
+    }
+}
 
-            SearchApiButton(
-                isLoading = isLoading,
-                onClick = {
-                    val query = searchText.trim()
-
-                    if (query.isEmpty()) {
-                        errorMessage = "Enter an alcohol name to search."
-                    } else {
-                        coroutineScope.launch {
-                            isLoading = true
-                            errorMessage = null
-                            selectedAlcohol = null
-
-                            try {
-                                apiResults = searchAndSaveAlcohol(
-                                    query = query,
-                                    database = database
-                                )
-                                Log.d(
-                                    API_SEARCH_TAG,
-                                    "Found ${apiResults.size} products for $query"
-                                )
-
-                                if (apiResults.isEmpty()) {
-                                    errorMessage = "No matching alcohols found."
-                                }
-                            } catch (error: IOException) {
-                                Log.e(
-                                    API_SEARCH_TAG,
-                                    "Network request failed",
-                                    error
-                                )
-                                errorMessage =
-                                    "Network error. Check your internet connection."
-                            } catch (error: SQLiteException) {
-                                Log.e(
-                                    API_SEARCH_TAG,
-                                    "Database save failed",
-                                    error
-                                )
-                                errorMessage =
-                                    "Could not save the products locally."
-                            } finally {
-                                isLoading = false
-                            }
-                        }
-                    }
-                }
-            )
-
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.padding(top = 16.dp)
-                )
-            }
-
-            SuggestionsList(
-                suggestions = suggestions,
-                onSuggestionSelected = { product ->
-                    selectedAlcohol = product
-                    searchText = product.product_name
-                    suggestions = emptyList()
-                    apiResults = emptyList()
-                    errorMessage = null
-                }
-            )
-
-            SearchResults(
-                selectedAlcohol = selectedAlcohol,
-                apiResults = apiResults,
-                searchText = searchText,
-                suggestions = suggestions,
-                isLoading = isLoading
-            )
-
-            errorMessage?.let { message ->
-                Text(
-                    text = message,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(top = 16.dp)
-                )
-            }
+@Composable
+private fun SearchScreenContent(
+    modifier: Modifier,
+    userId: Int,
+    fullName: String,
+    searchText: String,
+    suggestions: List<AlcoholEntity>,
+    apiResults: List<Alcohol>,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onSearchTextChange: (String) -> Unit,
+    onSearch: () -> Unit,
+    onAlcoholClick: (AlcoholDetails) -> Unit
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        SearchHeader(userId, fullName)
+        SearchField(searchText, onSearchTextChange)
+        SearchApiButton(isLoading, onSearch)
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.padding(top = 16.dp))
         }
+        SuggestionsList(
+            suggestions = suggestions,
+            onSuggestionSelected = { onAlcoholClick(it.toAlcoholDetails()) }
+        )
+        SearchResults(
+            apiResults = apiResults,
+            searchText = searchText,
+            suggestions = suggestions,
+            isLoading = isLoading,
+            onAlcoholClick = onAlcoholClick
+        )
+        errorMessage?.let {
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(top = 16.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SearchHeader(userId: Int, fullName: String) {
+    Text(
+        text = "Alcohol search",
+        style = MaterialTheme.typography.headlineMedium
+    )
+    Text(
+        text = "Signed in as $fullName",
+        style = MaterialTheme.typography.bodyMedium
+    )
+    if (userId <= 0) {
+        Text(
+            text = "No valid user ID was provided.",
+            color = MaterialTheme.colorScheme.error
+        )
+    }
+}
+
+private suspend fun performSearch(
+    searchText: String,
+    database: AppDatabase
+): SearchOutcome {
+    val query = searchText.trim()
+    if (query.isEmpty()) {
+        return SearchOutcome(errorMessage = "Enter an alcohol name to search.")
+    }
+
+    return try {
+        val products = searchAndSaveAlcohol(query, database)
+        Log.d(API_SEARCH_TAG, "Found ${products.size} products for $query")
+        SearchOutcome(
+            products = products,
+            errorMessage = if (products.isEmpty()) "No matching alcohols found." else null
+        )
+    } catch (error: IOException) {
+        Log.e(API_SEARCH_TAG, "Network request failed", error)
+        SearchOutcome(errorMessage = "Network error. Check your internet connection.")
+    } catch (error: SQLiteException) {
+        Log.e(API_SEARCH_TAG, "Database save failed", error)
+        SearchOutcome(errorMessage = "Could not save the products locally.")
     }
 }
 
 private suspend fun findSuggestions(
     searchText: String,
-    selectedAlcohol: AlcoholEntity?,
     database: AppDatabase
 ): List<AlcoholEntity> {
-    if (selectedAlcohol != null || searchText.isBlank()) {
+    if (searchText.isBlank()) {
         return emptyList()
     }
 
@@ -199,10 +243,7 @@ private suspend fun findSuggestions(
         database.alcoholDao()
             .getAll()
             .filter { product ->
-                product.product_name.contains(
-                    searchText.trim(),
-                    ignoreCase = true
-                )
+                product.product_name.contains(searchText.trim(), ignoreCase = true)
             }
             .sortedBy { it.product_name.lowercase() }
             .take(AUTOCOMPLETE_RESULT_LIMIT)
@@ -232,7 +273,6 @@ private suspend fun searchAndSaveAlcohol(
             )
         }
     }
-
     return products
 }
 
@@ -254,10 +294,7 @@ private fun SearchField(
 }
 
 @Composable
-private fun SearchApiButton(
-    isLoading: Boolean,
-    onClick: () -> Unit
-) {
+private fun SearchApiButton(isLoading: Boolean, onClick: () -> Unit) {
     Button(
         onClick = onClick,
         enabled = !isLoading,
@@ -272,25 +309,27 @@ private fun SuggestionsList(
     suggestions: List<AlcoholEntity>,
     onSuggestionSelected: (AlcoholEntity) -> Unit
 ) {
-    if (suggestions.isNotEmpty()) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 4.dp)
-        ) {
-            suggestions.forEach { product ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onSuggestionSelected(product) }
-                        .padding(vertical = 2.dp)
-                ) {
-                    Text(
-                        text = product.product_name,
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
+    if (suggestions.isEmpty()) {
+        return
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp)
+    ) {
+        suggestions.forEach { product ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 2.dp)
+                    .clickable { onSuggestionSelected(product) }
+            ) {
+                Text(
+                    text = product.product_name,
+                    modifier = Modifier.padding(12.dp),
+                    style = MaterialTheme.typography.bodyLarge
+                )
             }
         }
     }
@@ -298,15 +337,14 @@ private fun SuggestionsList(
 
 @Composable
 private fun SearchResults(
-    selectedAlcohol: AlcoholEntity?,
     apiResults: List<Alcohol>,
     searchText: String,
     suggestions: List<AlcoholEntity>,
-    isLoading: Boolean
+    isLoading: Boolean,
+    onAlcoholClick: (AlcoholDetails) -> Unit
 ) {
     when {
-        selectedAlcohol != null -> SelectedAlcoholResult(selectedAlcohol)
-        apiResults.isNotEmpty() -> ApiResultsList(apiResults)
+        apiResults.isNotEmpty() -> ApiResultsList(apiResults, onAlcoholClick)
         searchText.isNotBlank() && suggestions.isEmpty() && !isLoading -> Text(
             text = "No matching alcohols found.",
             modifier = Modifier.padding(top = 24.dp)
@@ -315,39 +353,62 @@ private fun SearchResults(
 }
 
 @Composable
-private fun SelectedAlcoholResult(product: AlcoholEntity) {
-    LazyColumn(Modifier.padding(top = 24.dp)) {
-        item {
-            Column(Modifier.padding(bottom = 16.dp)) {
-                Text(
-                    text = product.product_name,
-                    style = MaterialTheme.typography.titleLarge
-                )
-                product.brand?.let { Text("Brand: $it") }
-                product.countries?.let { Text("Country: $it") }
-                product.abv?.let { Text("ABV: $it%") }
-                product.image_url?.let { Text("Image: $it") }
+private fun ApiResultsList(
+    apiResults: List<Alcohol>,
+    onAlcoholClick: (AlcoholDetails) -> Unit
+) {
+    LazyColumn(modifier = Modifier.padding(top = 24.dp)) {
+        items(apiResults) { product ->
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
+                    .clickable { onAlcoholClick(product.toAlcoholDetails()) }
+            ) {
+                AlcoholResultContent(product)
             }
         }
     }
 }
 
 @Composable
-private fun ApiResultsList(apiResults: List<Alcohol>) {
-    LazyColumn(Modifier.padding(top = 24.dp)) {
-        items(apiResults) { product ->
-            Column(Modifier.padding(bottom = 16.dp)) {
-                Text(
-                    text = product.name ?: "Unknown product",
-                    style = MaterialTheme.typography.titleLarge
-                )
-                product.brand?.let { Text("Brand: $it") }
-                product.category?.let { Text("Category: $it") }
-                product.countries?.let { Text("Country: $it") }
-                product.size?.let { Text("Size: $it") }
-                product.abv?.let { Text("ABV: $it%") }
-                product.barcode?.let { Text("Barcode/SKU: $it") }
-            }
-        }
+private fun AlcoholResultContent(product: Alcohol) {
+    Column(modifier = Modifier.padding(16.dp)) {
+        Text(
+            text = product.name ?: "Unknown product",
+            style = MaterialTheme.typography.titleLarge
+        )
+        product.brand?.let { Text("Brand: $it") }
+        product.category?.let { Text("Category: $it") }
+        product.countries?.let { Text("Country: $it") }
+        product.size?.let { Text("Size: $it") }
+        product.abv?.let { Text("ABV: $it%") }
+        product.barcode?.let { Text("Barcode/SKU: $it") }
     }
+}
+
+private fun Alcohol.toAlcoholDetails(): AlcoholDetails {
+    return AlcoholDetails(
+        barcode = barcode,
+        name = name ?: "Unknown product",
+        brand = brand,
+        category = category,
+        countries = countries,
+        size = size,
+        abv = abv?.toString(),
+        imageUrl = imageUrl
+    )
+}
+
+private fun AlcoholEntity.toAlcoholDetails(): AlcoholDetails {
+    return AlcoholDetails(
+        barcode = id,
+        name = product_name,
+        brand = brand,
+        category = null,
+        countries = countries,
+        size = null,
+        abv = abv?.toString(),
+        imageUrl = image_url
+    )
 }

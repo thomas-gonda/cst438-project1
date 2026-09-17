@@ -12,6 +12,9 @@ interface AlcoholRecordDao {
     @Query("SELECT * FROM Alcohol_Record WHERE user_id = :userId ORDER BY date DESC, id DESC")
     suspend fun getTimeline(userId: Int): List<AlcoholRecordEntity>
 
+    @Query("SELECT * FROM Alcohol_Record WHERE user_id = :userId AND alc_id = :alcId ORDER BY date DESC, id DESC")
+    suspend fun getForAlcohol(userId: Int, alcId: String): List<AlcoholRecordEntity>
+
     @Query("SELECT COUNT(*) FROM Alcohol_Record WHERE user_id = :userId AND alc_id = :alcId")
     suspend fun getTimesConsumed(userId: Int, alcId: String): Int
 
