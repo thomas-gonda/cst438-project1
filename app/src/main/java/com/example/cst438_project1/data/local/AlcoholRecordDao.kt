@@ -17,4 +17,26 @@ interface AlcoholRecordDao {
 
     @Query("SELECT MAX(date) FROM Alcohol_Record WHERE user_id = :userId AND alc_id = :alcId")
     suspend fun getLastConsumedDate(userId: Int, alcId: String): String?
+
+    @Query(
+        """
+    SELECT
+        record.id AS record_id,
+        record.user_id AS user_id,
+        record.alc_id AS alcohol_id,
+        alcohol.product_name AS product_name,
+        alcohol.brand AS brand,
+        alcohol.abv AS abv,
+        alcohol.image_url AS image_url,
+        record.date AS date
+    FROM Alcohol_Record AS record
+    INNER JOIN Alcohol AS alcohol
+        ON alcohol.id = record.alc_id
+    WHERE record.user_id = :userId
+    ORDER BY record.date DESC, record.id DESC
+    """
+    )
+    suspend fun getTimelineEntries(
+        userId: Int
+    ): List<AlcoholTimelineEntry>
 }
