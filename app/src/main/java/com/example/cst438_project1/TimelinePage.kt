@@ -26,10 +26,13 @@ import com.example.cst438_project1.data.local.AlcoholTimelineEntry
 import com.example.cst438_project1.data.local.AppDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
+import androidx.compose.material3.TextButton
+import android.util.Log
+private const val TIMELINE_TAG = "TimelinePage"
 @Composable
 fun TimelinePage(
     userId: Int,
+    onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -57,9 +60,12 @@ fun TimelinePage(
                     .getTimelineEntries(userId)
             }
         } catch (error: SQLiteException) {
+            Log.e(
+                TIMELINE_TAG,
+                "Could not load timeline for user $userId",
+                error
+            )
             errorMessage = "Could not load the timeline."
-        } finally {
-            isLoading = false
         }
     }
 
@@ -68,6 +74,9 @@ fun TimelinePage(
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        TextButton(onClick = onBack) {
+            Text("Back")
+        }
         Text(
             text = "Alcohol Consumption Timeline",
             style = MaterialTheme.typography.headlineMedium

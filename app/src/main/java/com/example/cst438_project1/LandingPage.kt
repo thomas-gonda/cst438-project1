@@ -15,9 +15,12 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.cst438_project1.ui.theme.Cst438project1Theme
@@ -27,18 +30,48 @@ class LandingPage : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // retrieve the strings from the Intent
-        val firstName = intent.getStringExtra("FIRST_NAME") ?: "User"
-        val lastName = intent.getStringExtra("LAST_NAME") ?: ""
+        val userId = intent.getIntExtra("USER_ID", -1)
+        val firstName =
+            intent.getStringExtra("FIRST_NAME") ?: "User"
+        val lastName =
+            intent.getStringExtra("LAST_NAME") ?: ""
         val fullName = "$firstName $lastName".trim()
 
         setContent {
             Cst438project1Theme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting2(
-                        name = fullName,
-                        modifier = Modifier.padding(innerPadding)
+                var showTimeline by rememberSaveable {
+                    mutableStateOf(false)
+                }
+
+                if (showTimeline && userId > 0) {
+                    TimelinePage(
+                        userId = userId,
+                        onBack = {
+                            showTimeline = false
+                        }
                     )
+                } else {
+                    Scaffold(
+                        modifier = Modifier.fillMaxSize()
+                    ) { innerPadding ->
+                        LandingContent(
+                            name = fullName,
+                            timelineEnabled = userId > 0,
+                            onOpenTimeline = {
+                                showTimeline = true
+                            },
+                            onLogout = {
+                                startActivity(
+                                    Intent(
+                                        this,
+                                        LoginPage::class.java
+                                    )
+                                )
+                                finish()
+                            },
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    }
                 }
             }
         }
@@ -46,37 +79,36 @@ class LandingPage : ComponentActivity() {
 }
 
 @Composable
-fun Greeting2(name: String, modifier: Modifier = Modifier) {
-    // grab the current context so we can navigate
-    val context = LocalContext.current
-
+fun LandingContent(
+    name: String,
+    timelineEnabled: Boolean,
+    onOpenTimeline: () -> Unit,
+    onLogout: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Column(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(
-            text = "Welcome $name!"
-        )
+        Text(text = "Welcome $name!")
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Text(
-            text = "It's Tipsy Time!"
-        )
-
+        Text(text = "It's Tipsy Time!")
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        //Log Out Button
-        Button(onClick = {
-            // create an Intent to navigate back to LoginPage
-            val intent = Intent(context, LoginPage::class.java)
-            context.startActivity(intent)
+        Button(
+            onClick = onOpenTimeline,
+            enabled = timelineEnabled
+        ) {
+            Text("View Timeline")
+        }
 
-            // finish this Activity so the user cannot use the "Back" button to return here
-            (context as? ComponentActivity)?.finish()
-        }) {
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Button(onClick = onLogout) {
             Text("Log Out")
         }
     }
@@ -84,8 +116,13 @@ fun Greeting2(name: String, modifier: Modifier = Modifier) {
 
 @Preview(showBackground = true)
 @Composable
-fun GreetingPreview2() {
+fun LandingContentPreview() {
     Cst438project1Theme {
-        Greeting2("Test User")
+        LandingContent(
+            name = "Test User",
+            timelineEnabled = true,
+            onOpenTimeline = {},
+            onLogout = {}
+        )
     }
 }
