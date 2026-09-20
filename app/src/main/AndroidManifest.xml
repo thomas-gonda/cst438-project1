@@ -21,7 +21,6 @@
             android:exported="false"
             android:theme="@style/Theme.Cst438project1"
             android:windowSoftInputMode="adjustResize" />
-
         <activity
             android:name=".LandingPage"
             android:exported="false"
@@ -38,9 +37,16 @@
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".SignUpPage"
+            android:exported="false"
+            android:label="@string/title_activity_sign_up_page"
+            android:theme="@style/Theme.Cst438project1"
+            android:windowSoftInputMode="adjustResize" />
     </application>
 
 </manifest>
