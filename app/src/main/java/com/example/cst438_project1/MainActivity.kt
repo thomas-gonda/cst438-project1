@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -60,14 +61,24 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             Cst438project1Theme {
-                MainContent(userId, firstName, lastName)
+                MainContent(
+                    userId = userId,
+                    firstName = firstName,
+                    lastName = lastName,
+                    onBack = { finish() }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun MainContent(userId: Int, firstName: String, lastName: String) {
+private fun MainContent(
+    userId: Int,
+    firstName: String,
+    lastName: String,
+    onBack: () -> Unit
+) {
     var alcoholDetails by remember { mutableStateOf<AlcoholDetails?>(null) }
 
     BackHandler(enabled = alcoholDetails != null) {
@@ -80,6 +91,7 @@ private fun MainContent(userId: Int, firstName: String, lastName: String) {
             userId = userId,
             firstName = firstName,
             lastName = lastName,
+            onBack = onBack,
             onAlcoholClick = { alcoholDetails = it }
         )
     } else {
@@ -98,6 +110,7 @@ fun AlcoholSearchScreen(
     userId: Int,
     firstName: String,
     lastName: String,
+    onBack: () -> Unit,
     onAlcoholClick: (AlcoholDetails) -> Unit
 ) {
     var searchText by remember { mutableStateOf("") }
@@ -123,6 +136,7 @@ fun AlcoholSearchScreen(
             apiResults = apiResults,
             isLoading = isLoading,
             errorMessage = errorMessage,
+            onBack = onBack,
             onSearchTextChange = {
                 searchText = it
                 apiResults = emptyList()
@@ -152,6 +166,7 @@ private fun SearchScreenContent(
     apiResults: List<Alcohol>,
     isLoading: Boolean,
     errorMessage: String?,
+    onBack: () -> Unit,
     onSearchTextChange: (String) -> Unit,
     onSearch: () -> Unit,
     onAlcoholClick: (AlcoholDetails) -> Unit
@@ -161,6 +176,9 @@ private fun SearchScreenContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        TextButton(onClick = onBack) {
+            Text("Back")
+        }
         SearchHeader(userId, fullName)
         SearchField(searchText, onSearchTextChange)
         SearchApiButton(isLoading, onSearch)
