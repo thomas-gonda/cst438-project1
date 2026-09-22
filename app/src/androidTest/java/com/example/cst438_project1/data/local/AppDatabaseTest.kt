@@ -203,6 +203,68 @@ class AppDatabaseTest {
             )
         ).toInt()
     }
+    @Test
+    fun timelineReturnsOnlyCurrentUsersRecords() = runBlocking {
+        val userId = insertTestUser()
+
+        val otherUserId = database.userDao().insert(
+            UserEntity(
+                first_name = "Other",
+                last_name = "User",
+                password = "password",
+                username = "other-user"
+            )
+        ).toInt()
+
+        val alcohol = insertTestAlcohol()
+
+        database.alcoholExperienceDao().save(
+            AlcoholExperienceEntity(
+                user_id = userId,
+                alc_id = alcohol.id,
+                rating = 5,
+                user_review = "Very good"
+            )
+        )
+
+        database.alcoholRecordDao().insert(
+            AlcoholRecordEntity(
+                user_id = userId,
+                alc_id = alcohol.id,
+                date = "2026-09-20"
+            )
+        )
+
+        database.alcoholRecordDao().insert(
+            AlcoholRecordEntity(
+                user_id = userId,
+                alc_id = alcohol.id,
+                date = "2026-09-22"
+            )
+        )
+
+        database.alcoholRecordDao().insert(
+            AlcoholRecordEntity(
+                user_id = otherUserId,
+                alc_id = alcohol.id,
+                date = "2026-09-23"
+            )
+        )
+
+        val entries = database.alcoholRecordDao()
+            .getTimelineEntries(userId)
+
+        assertEquals(2, entries.size)
+        assertEquals("2026-09-22", entries[0].date)
+        assertEquals("2026-09-20", entries[1].date)
+
+        assertEquals(userId, entries[0].userId)
+        assertEquals(userId, entries[1].userId)
+
+        assertEquals("Absolut Vodka", entries[0].productName)
+        assertEquals(5, entries[0].rating)
+        assertEquals("Very good", entries[0].userReview)
+    }
 
     private suspend fun insertTestAlcohol(): AlcoholEntity {
         val alcohol = AlcoholEntity(
