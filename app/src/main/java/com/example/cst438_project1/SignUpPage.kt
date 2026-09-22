@@ -107,10 +107,12 @@ fun SignUP(modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = {
+            //makes sure nothing is left blank
             if (username.isEmpty() || password.isEmpty() || firstname.isEmpty() || lastname.isEmpty()) {
                 Toast.makeText(context, "Please fill out all fields", Toast.LENGTH_SHORT).show()
                 return@Button
             }
+            //makes sure the passwords match
             if (password != confirmPassword) {
                 Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
                 return@Button
@@ -121,8 +123,11 @@ fun SignUP(modifier: Modifier = Modifier) {
                 val userDao = db.userDao()
                 
                 val existingUser = userDao.findByUsername(username)
+                //makes sure the username isn't taken
                 if (existingUser != null) {
-                    Toast.makeText(context, "Username already exists", Toast.LENGTH_SHORT).show()
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "Username already exists", Toast.LENGTH_SHORT).show()
+                    }
                     return@launch
                 }
                 
@@ -135,15 +140,17 @@ fun SignUP(modifier: Modifier = Modifier) {
                 
                 val userId = userDao.insert(newUser).toInt()
                 
-                Toast.makeText(context, "Account created successfully", Toast.LENGTH_SHORT).show()
-                
-                val intent = Intent(context, LandingPage::class.java).apply {
-                    putExtra("USER_ID", userId)
-                    putExtra("FIRST_NAME", firstname)
-                    putExtra("LAST_NAME", lastname)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "Account created successfully", Toast.LENGTH_SHORT).show()
+                    
+                    val intent = Intent(context, LandingPage::class.java).apply {
+                        putExtra("USER_ID", userId)
+                        putExtra("FIRST_NAME", firstname)
+                        putExtra("LAST_NAME", lastname)
+                    }
+                    context.startActivity(intent)
+                    (context as? ComponentActivity)?.finish()
                 }
-                context.startActivity(intent)
-                (context as? ComponentActivity)?.finish()
             }
         }) {Text("Sign Up")}
     }
