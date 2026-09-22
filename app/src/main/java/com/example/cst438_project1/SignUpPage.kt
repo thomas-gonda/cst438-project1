@@ -108,7 +108,7 @@ fun SignUP(modifier: Modifier = Modifier) {
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = {
             //makes sure nothing is left blank
-            if (username.isEmpty() || password.isEmpty() || firstname.isEmpty() || lastname.isEmpty()) {
+            if (listOf(username, password, firstname, lastname).any { it.isEmpty() }) {
                 Toast.makeText(context, "Please fill out all fields", Toast.LENGTH_SHORT).show()
                 return@Button
             }
