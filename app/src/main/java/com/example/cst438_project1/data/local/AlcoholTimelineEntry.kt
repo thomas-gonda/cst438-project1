@@ -22,5 +22,10 @@ data class AlcoholTimelineEntry(
     @ColumnInfo(name = "image_url")
     val imageUrl: String?,
 
-    val date: String
+    val date: String,
+
+    val rating: Int?,
+
+    @ColumnInfo(name = "user_review")
+    val userReview: String?
 )

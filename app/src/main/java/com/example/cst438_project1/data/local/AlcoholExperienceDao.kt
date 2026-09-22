@@ -7,9 +7,23 @@ import androidx.room.Query
 
 @Dao
 interface AlcoholExperienceDao {
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun save(experience: AlcoholExperienceEntity)
 
-    @Query("SELECT * FROM Alcohol_Experience WHERE user_id = :userId AND alc_id = :alcId LIMIT 1")
-    suspend fun get(userId: Int, alcId: String): AlcoholExperienceEntity?
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun save(
+        experience: AlcoholExperienceEntity
+    )
+
+    @Query(
+        """
+        SELECT *
+        FROM Alcohol_Experience
+        WHERE user_id = :userId
+          AND alc_id = :alcId
+        LIMIT 1
+        """
+    )
+    suspend fun get(
+        userId: Int,
+        alcId: String
+    ): AlcoholExperienceEntity?
 }

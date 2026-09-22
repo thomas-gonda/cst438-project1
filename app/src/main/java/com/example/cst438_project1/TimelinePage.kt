@@ -66,6 +66,8 @@ fun TimelinePage(
                 error
             )
             errorMessage = "Could not load the timeline."
+        } finally {
+            isLoading = false
         }
     }
 
@@ -164,6 +166,19 @@ private fun TimelineEntryCard(
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 6.dp)
             )
+
+            Text(
+                text = "Rating: ${entry.rating}/5",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 6.dp)
+            )
+
+            entry.userReview?.let { review ->
+                Text(
+                    text = "Review: $review",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
 
             entry.brand?.let { brand ->
                 Text(
