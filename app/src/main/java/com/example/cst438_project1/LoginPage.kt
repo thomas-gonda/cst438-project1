@@ -130,8 +130,8 @@ fun LoginScreen(modifier: Modifier = Modifier) {
 
         Spacer(modifier = Modifier.height(8.dp))
         TextButton(onClick = {
-            //TODO: Add logic to open Sign Up Page
-            Toast.makeText(context, "Sign Up clicked!", Toast.LENGTH_SHORT).show()
+            val intent = android.content.Intent(context, SignUpPage::class.java)
+            context.startActivity(intent)
         }) {
             Text("Don't have an Account? Sign Up Here")
         }

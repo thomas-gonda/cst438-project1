@@ -1,5 +1,6 @@
 package com.example.cst438_project1
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -28,7 +29,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.cst438_project1.data.local.AppDatabase
+import com.example.cst438_project1.data.local.UserEntity
 import com.example.cst438_project1.ui.theme.Cst438project1Theme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SignUpPage : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,6 +58,7 @@ fun SignUP(modifier: Modifier = Modifier) {
     // Variables for user data
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var firstname by remember { mutableStateOf("") }
     var lastname by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
@@ -75,15 +82,13 @@ fun SignUP(modifier: Modifier = Modifier) {
         OutlinedTextField(
             value = firstname,
             onValueChange = { firstname = it },
-            label = { Text("First Name") },
-            visualTransformation = PasswordVisualTransformation() // Hides entered password
+            label = { Text("First Name") }
         )
-        //first name text box
+        //last name text box
         OutlinedTextField(
             value = lastname,
             onValueChange = { lastname = it },
-            label = { Text("Last Name") },
-            visualTransformation = PasswordVisualTransformation() // Hides entered password
+            label = { Text("Last Name") }
         )
 
         // Password text box
@@ -94,15 +99,52 @@ fun SignUP(modifier: Modifier = Modifier) {
             visualTransformation = PasswordVisualTransformation() // Hides entered password
         )
         OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
+            value = confirmPassword,
+            onValueChange = { confirmPassword = it },
             label = { Text("Confirm Password") },
             visualTransformation = PasswordVisualTransformation() // Hides entered password
         )
 
         Spacer(modifier = Modifier.height(16.dp))
         Button(onClick = {
-            Toast.makeText(context, "Sign Up clicked!", Toast.LENGTH_SHORT).show()
+            if (username.isEmpty() || password.isEmpty() || firstname.isEmpty() || lastname.isEmpty()) {
+                Toast.makeText(context, "Please fill out all fields", Toast.LENGTH_SHORT).show()
+                return@Button
+            }
+            if (password != confirmPassword) {
+                Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
+                return@Button
+            }
+            
+            coroutineScope.launch {
+                val db = AppDatabase.getInstance(context)
+                val userDao = db.userDao()
+                
+                val existingUser = userDao.findByUsername(username)
+                if (existingUser != null) {
+                    Toast.makeText(context, "Username already exists", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+                
+                val newUser = UserEntity(
+                    username = username,
+                    password = password,
+                    first_name = firstname,
+                    last_name = lastname
+                )
+                
+                val userId = userDao.insert(newUser).toInt()
+                
+                Toast.makeText(context, "Account created successfully", Toast.LENGTH_SHORT).show()
+                
+                val intent = Intent(context, LandingPage::class.java).apply {
+                    putExtra("USER_ID", userId)
+                    putExtra("FIRST_NAME", firstname)
+                    putExtra("LAST_NAME", lastname)
+                }
+                context.startActivity(intent)
+                (context as? ComponentActivity)?.finish()
+            }
         }) {Text("Sign Up")}
     }
 }
