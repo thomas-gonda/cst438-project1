@@ -96,4 +96,4 @@ app/src/main/java/com/example/cst438_project1/
 ## Notes
 
 - Code quality is checked with **Detekt** and **PMD** (`./gradlew detekt pmd` to run locally); configs live under `config/`.
-- This project has no README committed to the repo at the time of writing — see the repo's [commit history](https://github.com/thomas-gonda/cst438-project1/commits/main) for the latest changes.
+  
