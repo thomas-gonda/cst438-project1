@@ -45,7 +45,9 @@ Issues opened: [n] ([link]) | closed: [n]
 - Planned at kickoff: [n] stories | done: [n]
 
 ## What went well
-1. [Specific thing, and why it helped]
+1. We established the Room database and its tests early enough to support several features with persistent local data. This gave the timeline, ratings, and alcohol records a shared foundation instead of leaving each feature with disconnected data structures.
+
+2. We focused on completing the core user flow instead of spending too much time on optional features. The final product allows users to search for alcohol, view results, save information, record consumption, and see a personal timeline.
 
 ## What went wrong
 1. Git Reviews - Cause: We did do some reviews of other peoples code before approving the pr, but I don't think the comments were ever actually over github, we just talked about what needed to be changed on slack.  It seems important to document code review in the future, and we will make sure to place comments on the github pr review file itself.
