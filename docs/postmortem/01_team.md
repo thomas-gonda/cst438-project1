@@ -29,6 +29,19 @@ is all there in the final product.
 7) https://github.com/thomas-gonda/cst438-project1/pull/15 | merged
 8) 
 
+Adriks Contributions
+Issues opened: [n] ([link]) | closed: [n]
+1) https://github.com/thomas-gonda/cst438-project1/pull/16 | closed
+2) https://github.com/thomas-gonda/cst438-project1/pull/21 | closed
+3) https://github.com/thomas-gonda/cst438-project1/pull/26 | closed
+4) https://github.com/thomas-gonda/cst438-project1/pull/32 | closed
+5) https://github.com/thomas-gonda/cst438-project1/pull/33 | closed
+
+- Pull requests opened: [n] ([link]) | merged: [n]
+1) https://github.com/thomas-gonda/cst438-project1/issues/1 | merged
+2) https://github.com/thomas-gonda/cst438-project1/issues/3 | merged
+3) https://github.com/thomas-gonda/cst438-project1/issues/5 | merged
+4) https://github.com/thomas-gonda/cst438-project1/issues/11 | merged
 - Planned at kickoff: [n] stories | done: [n]
 
 ## What went well
